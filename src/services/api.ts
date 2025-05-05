@@ -12,7 +12,7 @@ import type {
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'https://campcoffee.ru/',
+  baseURL: 'https://coffeecamp.ru/api/',
   headers: {
     'Content-Type': 'application/json'
   }

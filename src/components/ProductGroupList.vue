@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { useProductGroupsStore } from '../stores/product-groups'
 import { storeToRefs } from 'pinia'
 import ConfirmationDialog from './ConfirmationDialog.vue'
+import ProductGroupForm from './ProductGroupForm.vue'
 import type { ProductGroup } from '../types'
 
 const productGroupsStore = useProductGroupsStore()
@@ -13,6 +14,36 @@ const { sortedProductGroups, isLoading, error } = storeToRefs(productGroupsStore
 onMounted(() => {
   productGroupsStore.fetchProductGroups()
 })
+
+// Form handling
+const productGroupFormRef = ref<InstanceType<typeof ProductGroupForm> | null>(null)
+const groupToEdit = ref<ProductGroup | null>(null)
+
+const openAddForm = () => {
+  groupToEdit.value = null
+  productGroupFormRef.value?.open()
+}
+
+const openEditForm = (group: ProductGroup) => {
+  groupToEdit.value = group
+  productGroupFormRef.value?.open()
+}
+
+const handleFormSubmit = async (groupData: Partial<ProductGroup>) => {
+  try {
+    if (groupToEdit.value) {
+      // Edit existing group
+      await productGroupsStore.editProductGroup(groupToEdit.value.id, groupData)
+      ElMessage.success(`Группа продуктов "${groupData.title}" была обновлена`)
+    } else {
+      // Add new group
+      await productGroupsStore.addProductGroup(groupData)
+      ElMessage.success(`Группа продуктов "${groupData.title}" была добавлена`)
+    }
+  } catch (err) {
+    ElMessage.error(error.value || 'Не удалось сохранить группу продуктов')
+  }
+}
 
 // Delete confirmation
 const confirmDialogRef = ref<InstanceType<typeof ConfirmationDialog> | null>(null)
@@ -42,7 +73,7 @@ const handleDeleteConfirmed = async () => {
     <template #header>
       <div class="flex justify-between items-center">
         <h2 class="text-xl font-bold">Группы продуктов</h2>
-        <el-button type="primary" size="small" icon="el-icon-plus">
+        <el-button type="primary" size="small" icon="el-icon-plus" @click="openAddForm">
           Добавить группу
         </el-button>
       </div>
@@ -67,7 +98,7 @@ const handleDeleteConfirmed = async () => {
       <el-table-column label="Действия" width="200">
         <template #default="{ row }">
           <div class="flex space-x-2">
-            <el-button size="small" type="primary" icon="el-icon-edit">Изменить</el-button>
+            <el-button size="small" type="primary" icon="el-icon-edit" @click="openEditForm(row)">Изменить</el-button>
             <el-button 
               size="small" 
               type="danger" 
@@ -88,6 +119,14 @@ const handleDeleteConfirmed = async () => {
       :message="`Вы уверены, что хотите удалить '${groupToDelete?.title || ''}'? Это действие нельзя отменить, и оно может не выполниться, если с этой группой связаны продукты.`"
       confirm-button-text="Удалить"
       @confirm="handleDeleteConfirmed"
+    />
+    
+    <!-- Product Group Form -->
+    <ProductGroupForm
+      ref="productGroupFormRef"
+      :product-group="groupToEdit"
+      :is-edit="!!groupToEdit"
+      @submit="handleFormSubmit"
     />
   </el-card>
 </template>

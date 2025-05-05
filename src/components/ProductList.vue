@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { useProductsStore } from '../stores/products'
 import { storeToRefs } from 'pinia'
 import ConfirmationDialog from './ConfirmationDialog.vue'
+import ProductForm from './ProductForm.vue'
 import type { Product } from '../types'
 
 const productsStore = useProductsStore()
@@ -13,6 +14,36 @@ const { sortedProducts, isLoading, error } = storeToRefs(productsStore)
 onMounted(() => {
   productsStore.fetchProducts()
 })
+
+// Form handling
+const productFormRef = ref<InstanceType<typeof ProductForm> | null>(null)
+const productToEdit = ref<Product | null>(null)
+
+const openAddForm = () => {
+  productToEdit.value = null
+  productFormRef.value?.open()
+}
+
+const openEditForm = (product: Product) => {
+  productToEdit.value = product
+  productFormRef.value?.open()
+}
+
+const handleFormSubmit = async (formData: FormData) => {
+  try {
+    if (productToEdit.value) {
+      // Edit existing product
+      await productsStore.editProduct(productToEdit.value.id, formData)
+      ElMessage.success('Продукт был успешно обновлен')
+    } else {
+      // Add new product
+      await productsStore.addProduct(formData)
+      ElMessage.success('Продукт был успешно добавлен')
+    }
+  } catch (err) {
+    ElMessage.error(error.value || 'Не удалось сохранить продукт')
+  }
+}
 
 // Delete confirmation
 const confirmDialogRef = ref<InstanceType<typeof ConfirmationDialog> | null>(null)
@@ -42,7 +73,7 @@ const handleDeleteConfirmed = async () => {
     <template #header>
       <div class="flex justify-between items-center">
         <h2 class="text-xl font-bold">Продукты</h2>
-        <el-button type="primary" size="small" icon="el-icon-plus">
+        <el-button type="primary" size="small" icon="el-icon-plus" @click="openAddForm">
           Добавить продукт
         </el-button>
       </div>
@@ -62,7 +93,31 @@ const handleDeleteConfirmed = async () => {
     
     <el-table v-else :data="sortedProducts" stripe style="width: 100%">
       <el-table-column prop="id" label="ID" width="70" />
-      <el-table-column prop="title" label="Название" />
+      <el-table-column prop="title" label="Название">
+        <template #default="{ row }">
+          <el-tooltip 
+            v-if="row.description" 
+            :content="row.description" 
+            placement="top" 
+            :effect="'light'" 
+            :show-after="500"
+          >
+            <span>{{ row.title }}</span>
+          </el-tooltip>
+          <span v-else>{{ row.title }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="Изображение" width="100">
+        <template #default="{ row }">
+          <img 
+            v-if="row.images && row.images.length > 0" 
+            :src="row.images[0].path" 
+            class="w-16 h-16 object-cover rounded" 
+            :alt="row.title"
+          />
+          <el-tag v-else type="info" size="small">Нет фото</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="productGroup.title" label="Группа" />
       <el-table-column prop="cost" label="Цена" width="120">
         <template #default="{ row }">
@@ -72,7 +127,7 @@ const handleDeleteConfirmed = async () => {
       <el-table-column label="Действия" width="200">
         <template #default="{ row }">
           <div class="flex space-x-2">
-            <el-button size="small" type="primary" icon="el-icon-edit">Изменить</el-button>
+            <el-button size="small" type="primary" icon="el-icon-edit" @click="openEditForm(row)">Изменить</el-button>
             <el-button 
               size="small" 
               type="danger" 
@@ -93,6 +148,14 @@ const handleDeleteConfirmed = async () => {
       :message="`Вы уверены, что хотите удалить '${productToDelete?.title || ''}'? Это действие нельзя отменить.`"
       confirm-button-text="Удалить"
       @confirm="handleDeleteConfirmed"
+    />
+    
+    <!-- Product Form -->
+    <ProductForm
+      ref="productFormRef"
+      :product="productToEdit"
+      :is-edit="!!productToEdit"
+      @submit="handleFormSubmit"
     />
   </el-card>
 </template>

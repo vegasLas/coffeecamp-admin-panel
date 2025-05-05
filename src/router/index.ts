@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,12 +19,20 @@ const router = createRouter({
 })
 
 // Navigation guard for protected routes
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, _, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  const token = localStorage.getItem('token')
+  const authStore = useAuthStore()
+  
+  // If not initialized yet, initialize auth state
+  if (!authStore.isInitialized) {
+    await authStore.initAuth()
+  }
 
-  if (requiresAuth && !token) {
+  if (requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
+  } else if (to.name === 'login' && authStore.isAuthenticated) {
+    // Redirect to dashboard if already logged in
+    next({ name: 'dashboard' })
   } else {
     next()
   }

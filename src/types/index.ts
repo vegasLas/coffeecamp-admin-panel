@@ -4,7 +4,6 @@
 export interface Admin {
   id: number
   username: string
-  email: string
 }
 
 export interface LoginCredentials {
@@ -56,8 +55,7 @@ export interface CreateReviewPayload {
 }
 
 // API response types
-export interface ApiResponse<T> {
+export type ApiResponse<T> = {
   message?: string
   error?: string
-  [key: string]: any
-}
+} & T;
