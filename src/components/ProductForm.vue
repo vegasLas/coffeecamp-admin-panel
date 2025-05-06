@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { useProductGroupsStore } from '../stores/product-groups'
 import { storeToRefs } from 'pinia'
 import type { Product } from '../types'
+import BaseFormModal from './BaseFormModal.vue'
 
 interface Props {
   product: Product | null
@@ -21,6 +22,8 @@ const emit = defineEmits<{
 }>()
 
 const formVisible = ref(false)
+const modalTitle = computed(() => props.isEdit ? 'Редактировать продукт' : 'Добавить продукт')
+const submitLabel = computed(() => props.isEdit ? 'Сохранить' : 'Добавить')
 const isSubmitting = ref(false)
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string>('')
@@ -33,6 +36,7 @@ onMounted(() => {
   if (sortedProductGroups.value.length === 0) {
     productGroupsStore.fetchProductGroups()
   }
+  // Note: Window resize event listener is already set up above
 })
 
 // Form data
@@ -142,13 +146,15 @@ defineExpose({
 </script>
 
 <template>
-  <el-dialog
-    v-model="formVisible"
-    :title="props.isEdit ? 'Редактировать продукт' : 'Добавить продукт'"
+  <BaseFormModal
+    v-model:visible="formVisible"
+    :title="modalTitle"
     width="40%"
-    center
-    destroy-on-close
-    @close="handleCancel"
+    :loading="isSubmitting"
+    :submit-disabled="!formValid"
+    :submit-label="submitLabel"
+    @cancel="handleCancel"
+    @submit="handleSubmit"
   >
     <el-form :model="form" label-position="top">
       <el-form-item label="Название" required>
@@ -204,27 +210,8 @@ defineExpose({
         </div>
       </el-form-item>
     </el-form>
-    
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="handleCancel" :disabled="isSubmitting">Отмена</el-button>
-        <el-button 
-          type="primary" 
-          @click="handleSubmit" 
-          :loading="isSubmitting"
-          :disabled="!formValid"
-        >
-          {{ props.isEdit ? 'Сохранить' : 'Добавить' }}
-        </el-button>
-      </span>
-    </template>
-  </el-dialog>
+  </BaseFormModal>
 </template>
 
 <style scoped>
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
 </style>

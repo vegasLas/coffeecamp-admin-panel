@@ -6,6 +6,7 @@ import { storeToRefs } from 'pinia'
 import ConfirmationDialog from './ConfirmationDialog.vue'
 import ProductForm from './ProductForm.vue'
 import type { Product } from '../types'
+import { Edit, Delete, Plus } from '@element-plus/icons-vue'
 
 const productsStore = useProductsStore()
 const { sortedProducts, isLoading, error } = storeToRefs(productsStore)
@@ -73,8 +74,8 @@ const handleDeleteConfirmed = async () => {
     <template #header>
       <div class="flex justify-between items-center">
         <h2 class="text-xl font-bold">Продукты</h2>
-        <el-button type="primary" size="small" icon="el-icon-plus" @click="openAddForm">
-          Добавить продукт
+        <el-button type="primary" size="small" circle @click="openAddForm">
+          <el-icon><Plus /></el-icon>
         </el-button>
       </div>
     </template>
@@ -127,14 +128,16 @@ const handleDeleteConfirmed = async () => {
       <el-table-column label="Действия" width="200">
         <template #default="{ row }">
           <div class="flex space-x-2">
-            <el-button size="small" type="primary" icon="el-icon-edit" @click="openEditForm(row)">Изменить</el-button>
+            <el-button size="small" type="primary" circle @click="openEditForm(row)">
+              <el-icon><Edit /></el-icon>
+            </el-button>
             <el-button 
               size="small" 
               type="danger" 
-              icon="el-icon-delete"
+              circle
               @click="confirmDelete(row)"
             >
-              Удалить
+              <el-icon><Delete /></el-icon>
             </el-button>
           </div>
         </template>

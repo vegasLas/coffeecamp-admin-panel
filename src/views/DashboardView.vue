@@ -90,9 +90,8 @@ const handleLogout = () => {
               :icon="SwitchButton" 
               @click="handleLogout"
               class="custom-logout-btn"
-            >
-              Выход
-            </el-button>
+              circle
+            ></el-button>
           </div>
         </div>
       </el-header>

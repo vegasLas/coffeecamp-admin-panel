@@ -1,23 +1,8 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { ProductGroup } from '../types'
-
-// Responsive dialog width
-const window = ref(globalThis.window)
-const windowWidth = ref(window.value.innerWidth)
-
-const updateWindowWidth = () => {
-  windowWidth.value = window.value.innerWidth
-}
-
-onMounted(() => {
-  window.value.addEventListener('resize', updateWindowWidth)
-})
-
-onUnmounted(() => {
-  window.value.removeEventListener('resize', updateWindowWidth)
-})
+import BaseFormModal from './BaseFormModal.vue'
 
 interface Props {
   productGroup: ProductGroup | null
@@ -35,6 +20,8 @@ const emit = defineEmits<{
 }>()
 
 const formVisible = ref(false)
+const modalTitle = computed(() => props.isEdit ? 'Редактировать группу продуктов' : 'Добавить группу продуктов')
+const submitLabel = computed(() => props.isEdit ? 'Сохранить' : 'Добавить')
 const isSubmitting = ref(false)
 
 // Form data
@@ -101,13 +88,15 @@ defineExpose({
 </script>
 
 <template>
-  <el-dialog
-    v-model="formVisible"
-    :title="props.isEdit ? 'Редактировать группу продуктов' : 'Добавить группу продуктов'"
-    :width="window.innerWidth <= 768 ? '90%' : '30%'"
-    center
-    destroy-on-close
-    @close="handleCancel"
+  <BaseFormModal
+    v-model:visible="formVisible"
+    :title="modalTitle"
+    width="30%"
+    :loading="isSubmitting"
+    :submit-disabled="!formValid"
+    :submit-label="submitLabel"
+    @cancel="handleCancel"
+    @submit="handleSubmit"
   >
     <el-form :model="form" label-position="top" status-icon>
       <el-form-item label="Название" required :error="!form.title && 'Название обязательно'">
@@ -121,89 +110,20 @@ defineExpose({
       </el-form-item>
       
       <el-form-item label="Приоритет" required :error="form.priority === undefined && 'Приоритет обязателен'">
-        <el-input-number 
-          v-model="form.priority" 
-          :min="0" 
-          :max="100" 
-          :step="1"
-          :precision="0"
-          controls-position="right"
-          placeholder="Введите приоритет"
-          style="width: 100%"
-        />
-        <div class="flex items-center mt-4">
           <el-slider 
             v-model="form.priority" 
             :min="0" 
-            :max="100" 
-            :step="5"
+            :max="10" 
+            :step="1"
             show-stops
             show-tooltip
-            :height="window.innerWidth <= 768 ? '200px' : ''"
-            :vertical="window.innerWidth <= 768"
-            class="flex-1 slider-custom"
           />
-        </div>
         <div class="text-xs text-gray-500 mt-1">
           Группы с более высоким приоритетом отображаются первыми (0-100)
         </div>
       </el-form-item>
     </el-form>
-    
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="handleCancel" :disabled="isSubmitting">Отмена</el-button>
-        <el-button 
-          type="primary" 
-          @click="handleSubmit" 
-          :loading="isSubmitting"
-          :disabled="!formValid"
-        >
-          {{ props.isEdit ? 'Сохранить' : 'Добавить' }}
-        </el-button>
-      </span>
-    </template>
-  </el-dialog>
+  </BaseFormModal>
 </template>
 
-<style scoped>
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-@media (max-width: 768px) {
-  .dialog-footer {
-    flex-direction: column-reverse;
-    width: 100%;
-  }
-  
-  .dialog-footer .el-button {
-    width: 100%;
-    margin-left: 0;
-    margin-bottom: 8px;
-  }
-}
-
-.slider-custom :deep(.el-slider__runway) {
-  margin: 0;
-}
-
-.slider-custom :deep(.el-slider__bar) {
-  background-color: #409EFF;
-}
-
-.slider-custom :deep(.el-slider__stop) {
-  width: 8px;
-  height: 8px;
-  background-color: #E4E7ED;
-  border-radius: 50%;
-}
-
-.slider-custom :deep(.el-slider__button) {
-  border: 2px solid #409EFF;
-  width: 16px;
-  height: 16px;
-}
-</style>
+<style scoped></style>

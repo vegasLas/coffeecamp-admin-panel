@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Delete, Plus } from '@element-plus/icons-vue'
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useReviewsStore } from '../stores/reviews'
@@ -51,8 +52,8 @@ function formatDate(dateString: string): string {
     <template #header>
       <div class="flex justify-between items-center">
         <h2 class="text-xl font-bold">Отзывы клиентов</h2>
-        <el-button type="primary" size="small" icon="el-icon-plus">
-          Добавить отзыв
+        <el-button type="primary" size="small" circle>
+          <el-icon><Plus /></el-icon>
         </el-button>
       </div>
     </template>
@@ -94,9 +95,9 @@ function formatDate(dateString: string): string {
             size="small" 
             type="danger" 
             @click="confirmDelete(row)"
-            icon="el-icon-delete"
+            circle
           >
-            Удалить
+            <el-icon><Delete /></el-icon>
           </el-button>
         </template>
       </el-table-column>
