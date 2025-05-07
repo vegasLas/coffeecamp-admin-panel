@@ -1,127 +1,42 @@
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
-import type { ProductGroup } from '../types'
+import { computed } from 'vue'
 import BaseFormModal from './BaseFormModal.vue'
+import { useProductGroupForm } from '../composables/forms/useProductGroupForm'
+import { useProductGroupsStore } from '../stores/product-groups'
+import type { ProductGroupFormEmits } from '../types/forms/ProductGroupFormTypes'
 
-interface Props {
-  productGroup: ProductGroup | null
-  isEdit?: boolean
-}
+// Define props without isEdit and productGroup since we'll use the store
 
-const props = withDefaults(defineProps<Props>(), {
-  productGroup: undefined,
-  isEdit: false
-})
+const emit = defineEmits<ProductGroupFormEmits>()
 
-const emit = defineEmits<{
-  (e: 'submit', group: Partial<ProductGroup>): void
-  (e: 'cancel'): void
-}>()
+// Get the product groups store for isEdit state
+const productGroupsStore = useProductGroupsStore()
+const isEdit = computed(() => productGroupsStore.isEditMode)
 
-const formVisible = ref(false)
-const modalTitle = computed(() => props.isEdit ? 'Редактировать группу продуктов' : 'Добавить группу продуктов')
-const submitLabel = computed(() => props.isEdit ? 'Сохранить' : 'Добавить')
-const isSubmitting = ref(false)
+// Initialize the form composable - no need to pass productGroup or isEdit
+const {
+  form,
+  formVisible,
+  isSubmitting,
+  formValid,
+  open,
+  close,
+  handleSubmit
+} = useProductGroupForm()
 
-// Store original data for comparison
-const originalData = ref<Partial<ProductGroup>>({})
-
-// Form data
-const form = reactive<Partial<ProductGroup>>({
-  title: props.productGroup?.title || '',
-  priority: props.productGroup?.priority || 0
-})
-
-// Form validation
-const formValid = computed(() => {
-  return form.title && form.title.trim() !== '' && form.priority !== undefined
-})
-
-
-
-const open = async () => {
-  // First, reset the form state
-  formVisible.value = true
-  
-  // Wait for the modal to be visible before setting data
-  await nextTick()
-  
-  // Reset form if not in edit mode
-  if (!props.isEdit) {
-    form.title = ''
-    form.priority = 0
-    originalData.value = {}
-  } else if (props.productGroup) {
-    // Store original values for comparison
-    originalData.value = {
-      title: props.productGroup.title,
-      priority: props.productGroup.priority
-    }
-    
-    // Copy values from the provided product group in edit mode
-    form.title = props.productGroup.title
-    form.priority = props.productGroup.priority
-  }
-}
-
-const close = () => {
-  formVisible.value = false
-}
-
-const handleCancel = () => {
-  emit('cancel')
-  close()
-}
-
-// Compare current form data with original data
-const getChangedFields = () => {
-  if (!props.isEdit || !originalData.value) return null
-  
-  const changes: Record<string, any> = {}
-  
-  // Check text and number fields
-  if (form.title !== originalData.value.title) changes.title = form.title
-  if (form.priority !== originalData.value.priority) changes.priority = form.priority
-  
-  return Object.keys(changes).length > 0 ? changes : null
-}
-
-const handleSubmit = async () => {
-  if (!formValid.value) {
-    ElMessage.warning('Пожалуйста, заполните все обязательные поля')
-    return
-  }
-  
-  isSubmitting.value = true
-  
-  try {
-    if (props.isEdit && props.productGroup) {
-      // In edit mode, only send changed fields and ID
-      const changes = getChangedFields()
-      
-      if (changes) {
-        emit('submit', {
-          ...changes,
-          id: props.productGroup.id
-        })
-      } else {
-        // No changes, just close the form
-        ElMessage.info('Нет изменений для сохранения')
-        close()
-        return
-      }
-    } else {
-      // In create mode, send all fields
-      emit('submit', { ...form })
-    }
-    
+// Handle form submission
+const onSubmit = async () => {
+  const result = await handleSubmit()
+  if (result) {
+    emit('submit', result)
     close()
-  } catch (error) {
-    console.error('Form submission error:', error)
-  } finally {
-    isSubmitting.value = false
   }
+}
+
+// Handle form cancellation
+const onCancel = () => {
+  close()
+  emit('cancel')
 }
 
 // Expose methods to parent component
@@ -134,14 +49,14 @@ defineExpose({
 <template>
   <BaseFormModal
     v-model:visible="formVisible"
-    :title="modalTitle"
+    :title="isEdit ? 'Редактировать группу товаров' : 'Добавить группу товаров'"
     :loading="isSubmitting"
     :submit-disabled="!formValid"
-    :submit-label="submitLabel"
-    @cancel="handleCancel"
-    @submit="handleSubmit"
+    :submit-label="isEdit ? 'Сохранить' : 'Добавить'"
+    @cancel="onCancel"
+    @submit="onSubmit"
   >
-    <el-form :model="form" label-position="top" status-icon>
+    <el-form label-position="top" status-icon>
       <el-form-item label="Название" required :error="!form.title && 'Название обязательно'">
         <el-input 
           v-model="form.title" 
@@ -162,11 +77,9 @@ defineExpose({
             show-tooltip
           />
         <div class="text-xs text-gray-500 mt-1">
-          Группы с более высоким приоритетом отображаются первыми (0-100)
+          Группы с более высоким приоритетом отображаются первыми (0-10)
         </div>
       </el-form-item>
     </el-form>
   </BaseFormModal>
 </template>
-
-<style scoped></style>

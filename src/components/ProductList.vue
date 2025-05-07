@@ -18,23 +18,24 @@ onMounted(() => {
 
 // Form handling
 const productFormRef = ref<InstanceType<typeof ProductForm> | null>(null)
-const productToEdit = ref<Product | null>(null)
 
 const openAddForm = () => {
-  productToEdit.value = null
+  // Set store state for add mode
+  productsStore.setEditMode(null)
   productFormRef.value?.open()
 }
 
 const openEditForm = (product: Product) => {
-  productToEdit.value = product
+  // Set store state for edit mode
+  productsStore.setEditMode(product)
   productFormRef.value?.open()
 }
 
 const handleFormSubmit = async (formData: FormData) => {
   try {
-    if (productToEdit.value) {
+    if (productsStore.isEditMode && productsStore.currentEditingProduct) {
       // Edit existing product
-      await productsStore.editProduct(productToEdit.value.id, formData)
+      await productsStore.editProduct(productsStore.currentEditingProduct.id, formData)
       ElMessage.success('Продукт был успешно обновлен')
     } else {
       // Add new product
@@ -156,8 +157,6 @@ const handleDeleteConfirmed = async () => {
     <!-- Product Form -->
     <ProductForm
       ref="productFormRef"
-      :product="productToEdit"
-      :is-edit="!!productToEdit"
       @submit="handleFormSubmit"
     />
   </el-card>

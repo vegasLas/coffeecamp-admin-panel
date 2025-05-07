@@ -8,6 +8,10 @@ export const useProductGroupsStore = defineStore('productGroups', () => {
   const productGroups = ref<ProductGroup[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  
+  // Form state
+  const isEditMode = ref(false)
+  const currentEditingProductGroup = ref<ProductGroup | null>(null)
 
   // Getters
   const sortedProductGroups = computed(() => {
@@ -91,17 +95,28 @@ export const useProductGroupsStore = defineStore('productGroups', () => {
     }
   }
 
+  // Form state management
+  function setEditMode(productGroup: ProductGroup | null) {
+    isEditMode.value = !!productGroup
+    currentEditingProductGroup.value = productGroup
+  }
+  
   return {
     // State
     productGroups,
     isLoading,
     error,
+    // Form state
+    isEditMode,
+    currentEditingProductGroup,
     // Getters
     sortedProductGroups,
     // Actions
     fetchProductGroups,
     addProductGroup,
     editProductGroup,
-    removeProductGroup
+    removeProductGroup,
+    // Form actions
+    setEditMode
   }
 })

@@ -18,23 +18,24 @@ onMounted(() => {
 
 // Form handling
 const productGroupFormRef = ref<InstanceType<typeof ProductGroupForm> | null>(null)
-const groupToEdit = ref<ProductGroup | null>(null)
 
 const openAddForm = () => {
-  groupToEdit.value = null
+  // Set store state for add mode
+  productGroupsStore.setEditMode(null)
   productGroupFormRef.value?.open()
 }
 
 const openEditForm = (group: ProductGroup) => {
-  groupToEdit.value = group
+  // Set store state for edit mode
+  productGroupsStore.setEditMode(group)
   productGroupFormRef.value?.open()
 }
 
 const handleFormSubmit = async (groupData: Partial<ProductGroup>) => {
   try {
-    if (groupToEdit.value) {
+    if (productGroupsStore.isEditMode && productGroupsStore.currentEditingProductGroup) {
       // Edit existing group
-      await productGroupsStore.editProductGroup(groupToEdit.value.id, groupData)
+      await productGroupsStore.editProductGroup(productGroupsStore.currentEditingProductGroup.id, groupData)
       ElMessage.success(`Группа продуктов "${groupData.title}" была обновлена`)
     } else {
       // Add new group
@@ -127,8 +128,6 @@ const handleDeleteConfirmed = async () => {
     <!-- Product Group Form -->
     <ProductGroupForm
       ref="productGroupFormRef"
-      :product-group="groupToEdit"
-      :is-edit="!!groupToEdit"
       @submit="handleFormSubmit"
     />
   </el-card>

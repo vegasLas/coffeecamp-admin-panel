@@ -34,22 +34,28 @@ const dialogWidth = computed(() => {
 
 const handleCancel = () => {
   emit('cancel')
-  emit('update:visible', false)
+  visibleComputed.value = false
 }
 
 const handleSubmit = () => {
   emit('submit')
 }
+
+// Computed property for v-model binding
+const visibleComputed = computed({
+  get: () => props.visible,
+  set: (value) => emit('update:visible', value)
+})
 </script>
 
 <template>
   <ElDialog
-    v-model="visible"
+    v-model="visibleComputed"
     :title="title"
     :width="dialogWidth"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
-    @close="$emit('update:visible', false)"
+    @close="handleCancel"
   >
     <!-- Form content -->
     <slot></slot>
