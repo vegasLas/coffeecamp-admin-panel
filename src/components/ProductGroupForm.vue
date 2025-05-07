@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { ProductGroup } from '../types'
 import BaseFormModal from './BaseFormModal.vue'
@@ -40,7 +40,13 @@ const formValid = computed(() => {
 
 
 
-const open = () => {
+const open = async () => {
+  // First, reset the form state
+  formVisible.value = true
+  
+  // Wait for the modal to be visible before setting data
+  await nextTick()
+  
   // Reset form if not in edit mode
   if (!props.isEdit) {
     form.title = ''
@@ -57,8 +63,6 @@ const open = () => {
     form.title = props.productGroup.title
     form.priority = props.productGroup.priority
   }
-  
-  formVisible.value = true
 }
 
 const close = () => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useProductGroupsStore } from '../stores/product-groups'
 import { storeToRefs } from 'pinia'
@@ -77,7 +77,13 @@ const formValid = computed(() => {
   )
 })
 
-const open = () => {
+const open = async () => {
+  // First, reset the form state
+  formVisible.value = true
+  
+  // Wait for the modal to be visible before setting data
+  await nextTick()
+  
   // Reset form if not in edit mode
   if (!props.isEdit) {
     form.title = ''
@@ -114,8 +120,6 @@ const open = () => {
     }
     imageFiles.value = []
   }
-  
-  formVisible.value = true
 }
 
 const close = () => {
