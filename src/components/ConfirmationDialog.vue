@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 
 interface Props {
   title?: string
@@ -8,14 +8,16 @@ interface Props {
   cancelButtonText?: string
   confirmButtonType?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
   width?: string
+  mobileWidth?: string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   title: 'Подтвердите действие',
   confirmButtonText: 'Подтвердить',
   cancelButtonText: 'Отмена',
   confirmButtonType: 'danger',
-  width: '30%'
+  width: '30%',
+  mobileWidth: '90%'
 })
 
 const emit = defineEmits<{
@@ -24,7 +26,27 @@ const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
 }>()
 
+// Responsive dialog width
+const window = ref(globalThis.window)
+const windowWidth = ref(window.value.innerWidth)
+
+const updateWindowWidth = () => {
+  windowWidth.value = window.value.innerWidth
+}
+
+onMounted(() => {
+  window.value.addEventListener('resize', updateWindowWidth)
+})
+
+onUnmounted(() => {
+  window.value.removeEventListener('resize', updateWindowWidth)
+})
+
 const dialogVisible = ref(false)
+
+const dialogWidth = computed(() => {
+  return window.value.innerWidth <= 768 ? props.mobileWidth : props.width
+})
 
 const setVisible = (value: boolean) => {
   dialogVisible.value = value
@@ -52,7 +74,7 @@ defineExpose({
   <el-dialog
     v-model="dialogVisible"
     :title="title"
-    :width="width"
+    :width="dialogWidth"
     center
     destroy-on-close
     @close="handleCancel"
@@ -74,5 +96,18 @@ defineExpose({
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .dialog-footer {
+    flex-direction: column-reverse;
+    width: 100%;
+  }
+  
+  .dialog-footer .el-button {
+    width: 100%;
+    margin-left: 0;
+    margin-bottom: 8px;
+  }
 }
 </style>

@@ -95,7 +95,7 @@ const handleDeleteConfirmed = async () => {
     <el-table v-else :data="sortedProductGroups" stripe style="width: 100%">
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="title" label="Название" />
-      <el-table-column prop="priority" label="Приоритет" width="100" />
+      <el-table-column prop="priority" label="Приоритет" width="150" />
       <el-table-column label="Действия" width="200">
         <template #default="{ row }">
           <div class="flex space-x-2">

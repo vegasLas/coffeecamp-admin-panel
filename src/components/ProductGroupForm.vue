@@ -91,7 +91,6 @@ defineExpose({
   <BaseFormModal
     v-model:visible="formVisible"
     :title="modalTitle"
-    width="30%"
     :loading="isSubmitting"
     :submit-disabled="!formValid"
     :submit-label="submitLabel"

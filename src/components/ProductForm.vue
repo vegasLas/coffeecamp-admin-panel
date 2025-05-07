@@ -5,6 +5,8 @@ import { useProductGroupsStore } from '../stores/product-groups'
 import { storeToRefs } from 'pinia'
 import type { Product } from '../types'
 import BaseFormModal from './BaseFormModal.vue'
+import { Plus, Delete, ZoomIn } from '@element-plus/icons-vue'
+import type { UploadProps, UploadUserFile, UploadFile } from 'element-plus'
 
 interface Props {
   product: Product | null
@@ -25,8 +27,8 @@ const formVisible = ref(false)
 const modalTitle = computed(() => props.isEdit ? 'Редактировать продукт' : 'Добавить продукт')
 const submitLabel = computed(() => props.isEdit ? 'Сохранить' : 'Добавить')
 const isSubmitting = ref(false)
-const imageFile = ref<File | null>(null)
-const imagePreview = ref<string>('')
+const imageFiles = ref<File[]>([])
+const fileList = ref<UploadUserFile[]>([])
 
 // Get product groups for the dropdown
 const productGroupsStore = useProductGroupsStore()
@@ -60,7 +62,7 @@ const formValid = computed(() => {
     form.cost > 0 &&
     form.productGroupId !== null &&
     // In edit mode, we don't require a new image
-    (props.isEdit || imageFile.value !== null)
+    (props.isEdit || imageFiles.value.length > 0)
   )
 })
 
@@ -71,8 +73,8 @@ const open = () => {
     form.description = ''
     form.cost = 0
     form.productGroupId = null
-    imageFile.value = null
-    imagePreview.value = ''
+    imageFiles.value = []
+    fileList.value = []
   } else if (props.product) {
     // Copy values from the provided product in edit mode
     form.title = props.product.title
@@ -80,12 +82,16 @@ const open = () => {
     form.cost = props.product.cost
     form.productGroupId = props.product.productGroup.id
     
-    // Set image preview if available
+    // Set image previews if available
     if (props.product.images && props.product.images.length > 0) {
-      imagePreview.value = props.product.images[0].path
+      fileList.value = props.product.images.map((image, index) => ({
+        name: `existing-image-${index}`,
+        url: image.path
+      }))
     } else {
-      imagePreview.value = ''
+      fileList.value = []
     }
+    imageFiles.value = []
   }
   
   formVisible.value = true
@@ -100,12 +106,56 @@ const handleCancel = () => {
   close()
 }
 
-const handleImageChange = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
-    imageFile.value = target.files[0]
-    imagePreview.value = URL.createObjectURL(imageFile.value)
+const handleExceed = (files: File[]) => {
+  ElMessage.warning(`Максимальное количество изображений: 5. Вы пытаетесь добавить еще ${files.length} изображений.`)
+}
+
+const handleRemove = (file: UploadFile) => {
+  // Remove from fileList
+  const index = fileList.value.findIndex(item => item.name === file.name)
+  if (index !== -1) {
+    fileList.value.splice(index, 1)
   }
+  
+  // Remove from imageFiles if it's a new upload
+  if (file.raw) {
+    const fileIndex = imageFiles.value.findIndex(f => f === file.raw)
+    if (fileIndex !== -1) {
+      imageFiles.value.splice(fileIndex, 1)
+    }
+  }
+}
+
+const handlePreview = (file: UploadFile) => {
+  // Open image in a new tab for preview
+  if (file.url) {
+    window.open(file.url)
+  }
+}
+
+const handleChange: UploadProps['onChange'] = (file, uploadFiles) => {
+  // Update fileList for UI
+  fileList.value = uploadFiles
+  
+  // Update imageFiles for form submission
+  if (file.raw && !imageFiles.value.includes(file.raw)) {
+    imageFiles.value.push(file.raw)
+  }
+}
+
+const beforeImageUpload: UploadProps['beforeUpload'] = (file) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt2M = file.size / 1024 / 1024 < 2
+
+  if (!isImage) {
+    ElMessage.error('Можно загружать только изображения!')
+    return false
+  }
+  if (!isLt2M) {
+    ElMessage.error('Размер изображения не должен превышать 2MB!')
+    return false
+  }
+  return true
 }
 
 const handleSubmit = async () => {
@@ -124,9 +174,27 @@ const handleSubmit = async () => {
     formData.append('cost', form.cost.toString())
     formData.append('productGroupId', form.productGroupId!.toString())
     
-    // Only append image if it's a new product or if a new image was selected
-    if (imageFile.value) {
-      formData.append('image', imageFile.value)
+    // Append all new images
+    if (imageFiles.value.length > 0) {
+      imageFiles.value.forEach((file, index) => {
+        formData.append(`images[${index}]`, file)
+      })
+    }
+    
+    // If in edit mode, append existing image IDs that weren't removed
+    if (props.isEdit && props.product?.images) {
+      // Find existing images that are still in the fileList
+      const existingImageIds = props.product.images
+        .filter((_, index) => {
+          // Check if this existing image is still in fileList
+          return fileList.value.some(file => file.name === `existing-image-${index}`)
+        })
+        .map(image => image.id)
+      
+      // Append existing image IDs
+      existingImageIds.forEach((id, index) => {
+        formData.append(`existingImageIds[${index}]`, id.toString())
+      })
     }
     
     emit('submit', formData)
@@ -149,7 +217,6 @@ defineExpose({
   <BaseFormModal
     v-model:visible="formVisible"
     :title="modalTitle"
-    width="40%"
     :loading="isSubmitting"
     :submit-disabled="!formValid"
     :submit-label="submitLabel"
@@ -196,22 +263,42 @@ defineExpose({
         </el-select>
       </el-form-item>
       
-      <el-form-item :label="props.isEdit ? 'Изменить изображение' : 'Изображение'" :required="!props.isEdit">
-        <input 
-          type="file" 
-          accept="image/*" 
-          @change="handleImageChange"
-          class="mb-2"
-        />
-        
-        <div v-if="imagePreview" class="mt-2">
-          <p class="text-sm text-gray-500 mb-1">Предпросмотр:</p>
-          <img :src="imagePreview" class="max-w-full h-auto max-h-40 object-contain" />
+      <el-form-item :label="props.isEdit ? 'Изменить изображения' : 'Изображения'" :required="!props.isEdit">
+        <el-upload
+          class="mr-4"
+          action="#"
+          :auto-upload="false"
+          list-type="picture-card"
+          :file-list="fileList"
+          :on-change="handleChange"
+          :on-remove="handleRemove"
+          :on-preview="handlePreview"
+          :before-upload="beforeImageUpload"
+          :on-exceed="handleExceed"
+          :limit="5"
+          multiple
+        >
+          <el-icon><Plus /></el-icon>
+          <template #file="{ file }">
+            <div>
+              <img class="el-upload-list__item-thumbnail" :src="file.url" alt="" />
+              <span class="el-upload-list__item-actions">
+                <span class="el-upload-list__item-preview" @click="handlePreview(file)">
+                  <el-icon><zoom-in /></el-icon>
+                </span>
+                <span class="el-upload-list__item-delete" @click="handleRemove(file)">
+                  <el-icon><Delete /></el-icon>
+                </span>
+              </span>
+            </div>
+          </template>
+        </el-upload>
+        <div class="text-xs text-gray-500 mt-1">
+          Вы можете загрузить до 5 изображений (макс. 2MB каждое)
         </div>
       </el-form-item>
     </el-form>
   </BaseFormModal>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

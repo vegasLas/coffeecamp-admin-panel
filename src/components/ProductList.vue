@@ -82,13 +82,13 @@ const handleDeleteConfirmed = async () => {
     
     <el-skeleton :rows="3" animated v-if="isLoading" />
     
-    <el-alert
+    <!-- <el-alert
       v-else-if="error"
       :title="error"
       type="error"
       show-icon
       :closable="false"
-    />
+    /> -->
     
     <el-empty v-else-if="sortedProducts.length === 0" description="Продукты не найдены" />
     
@@ -108,11 +108,11 @@ const handleDeleteConfirmed = async () => {
           <span v-else>{{ row.title }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="Изображение" width="100">
+      <el-table-column label="Изображение" width="140">
         <template #default="{ row }">
           <img 
             v-if="row.images && row.images.length > 0" 
-            :src="row.images[0].path" 
+            :src="`https://coffeecamp.ru${row.images[0].path}`" 
             class="w-16 h-16 object-cover rounded" 
             :alt="row.title"
           />
@@ -122,7 +122,7 @@ const handleDeleteConfirmed = async () => {
       <el-table-column prop="productGroup.title" label="Группа" />
       <el-table-column prop="cost" label="Цена" width="120">
         <template #default="{ row }">
-          ${{ row.cost.toFixed(2) }}
+          ₽{{ row.cost.toFixed(2) }}
         </template>
       </el-table-column>
       <el-table-column label="Действия" width="200">

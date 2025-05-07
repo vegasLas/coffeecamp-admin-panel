@@ -53,7 +53,7 @@ const handleSubmit = () => {
 }
 
 const dialogWidth = computed(() => {
-  return window.value.innerWidth <= 768 ? props.mobileWidth : props.width
+  return windowWidth.value <= 768 ? props.mobileWidth : props.width
 })
 </script>
 
