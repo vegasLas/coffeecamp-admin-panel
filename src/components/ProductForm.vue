@@ -30,6 +30,15 @@ const isSubmitting = ref(false)
 const imageFiles = ref<File[]>([])
 const fileList = ref<UploadUserFile[]>([])
 
+// Store original data for comparison
+const originalData = ref<{
+  title: string
+  description: string
+  cost: number
+  productGroupId: number | null
+  images?: any[]
+}>({} as any)
+
 // Get product groups for the dropdown
 const productGroupsStore = useProductGroupsStore()
 const { sortedProductGroups, isLoading: isLoadingGroups } = storeToRefs(productGroupsStore)
@@ -48,11 +57,13 @@ const form = reactive<{
   cost: number
   productGroupId: number | null
 }>({ 
-  title: props.product?.title || '',
-  description: props.product?.description || '',
-  cost: props.product?.cost || 0,
-  productGroupId: props.product?.productGroup?.id || null
+  title: '',
+  description: '',
+  cost: 0,
+  productGroupId: null
 })
+
+
 
 // Form validation
 const formValid = computed(() => {
@@ -75,18 +86,28 @@ const open = () => {
     form.productGroupId = null
     imageFiles.value = []
     fileList.value = []
+    originalData.value = {} as any
   } else if (props.product) {
+    // Store original values for comparison
+    originalData.value = {
+      title: props.product.title || '',
+      description: props.product.description || '',
+      cost: props.product.cost || 0,
+      productGroupId: props.product.productGroup?.id || null,
+      images: props.product.images || []
+    }
+    
     // Copy values from the provided product in edit mode
-    form.title = props.product.title
-    form.description = props.product.description
-    form.cost = props.product.cost
-    form.productGroupId = props.product.productGroup.id
+    form.title = props.product.title || ''
+    form.description = props.product.description || ''
+    form.cost = props.product.cost || 0
+    form.productGroupId = props.product.productGroup?.id || null
     
     // Set image previews if available
     if (props.product.images && props.product.images.length > 0) {
       fileList.value = props.product.images.map((image, index) => ({
         name: `existing-image-${index}`,
-        url: image.path
+        url: `https://coffeecamp.ru${image.path}`
       }))
     } else {
       fileList.value = []
@@ -158,6 +179,32 @@ const beforeImageUpload: UploadProps['beforeUpload'] = (file) => {
   return true
 }
 
+// Compare current form data with original data
+const getChangedFields = () => {
+  if (!props.isEdit || !originalData.value) return null
+  
+  const changes: Record<string, any> = {}
+  
+  // Check text and number fields
+  if (form.title !== originalData.value.title) changes.title = form.title
+  if (form.description !== originalData.value.description) changes.description = form.description
+  if (form.cost !== originalData.value.cost) changes.cost = form.cost
+  if (form.productGroupId !== originalData.value.productGroupId) changes.productGroupId = form.productGroupId
+  
+  // Check if images have changed
+  const hasNewImages = imageFiles.value.length > 0
+  
+  // Check if existing images were removed
+  const originalImageCount = originalData.value.images?.length || 0
+  const currentExistingImageCount = fileList.value.filter(file => 
+    file.name.startsWith('existing-image-')
+  ).length
+  
+  const imagesChanged = hasNewImages || (originalImageCount !== currentExistingImageCount)
+  
+  return { changes, imagesChanged }
+}
+
 const handleSubmit = async () => {
   if (!formValid.value) {
     ElMessage.warning('Пожалуйста, заполните все обязательные поля')
@@ -169,32 +216,60 @@ const handleSubmit = async () => {
   try {
     // Create FormData object for file upload
     const formData = new FormData()
-    formData.append('title', form.title)
-    formData.append('description', form.description)
-    formData.append('cost', form.cost.toString())
-    formData.append('productGroupId', form.productGroupId!.toString())
     
-    // Append all new images
-    if (imageFiles.value.length > 0) {
-      imageFiles.value.forEach((file, index) => {
-        formData.append(`images[${index}]`, file)
-      })
-    }
-    
-    // If in edit mode, append existing image IDs that weren't removed
-    if (props.isEdit && props.product?.images) {
-      // Find existing images that are still in the fileList
-      const existingImageIds = props.product.images
-        .filter((_, index) => {
-          // Check if this existing image is still in fileList
-          return fileList.value.some(file => file.name === `existing-image-${index}`)
-        })
-        .map(image => image.id)
+    if (props.isEdit) {
+      // In edit mode, only send changed fields
+      const { changes, imagesChanged } = getChangedFields() || {}
       
-      // Append existing image IDs
-      existingImageIds.forEach((id, index) => {
-        formData.append(`existingImageIds[${index}]`, id.toString())
+      // Add ID for edit mode
+      if (props.product?.id) {
+        formData.append('id', props.product.id.toString())
+      }
+      
+      // Add changed text fields
+      Object.entries(changes || {}).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          formData.append(key, value.toString())
+        }
       })
+      
+      // If images changed, handle them
+      if (imagesChanged) {
+        // Append all new images
+        if (imageFiles.value.length > 0) {
+          imageFiles.value.forEach((file, index) => {
+            formData.append(`images[${index}]`, file)
+          })
+        }
+        
+        // Find existing images that are still in the fileList
+        if (props.product?.images) {
+          const existingImageIds = props.product.images
+            .filter((_, index) => {
+              // Check if this existing image is still in fileList
+              return fileList.value.some(file => file.name === `existing-image-${index}`)
+            })
+            .map(image => image.id)
+          
+          // Append existing image IDs
+          existingImageIds.forEach((id, index) => {
+            formData.append(`existingImages[${index}]`, id.toString())
+          })
+        }
+      }
+    } else {
+      // In create mode, send all fields
+      formData.append('title', form.title)
+      formData.append('description', form.description)
+      formData.append('cost', form.cost.toString())
+      formData.append('productGroupId', form.productGroupId!.toString())
+      
+      // Append all new images
+      if (imageFiles.value.length > 0) {
+        imageFiles.value.forEach((file, index) => {
+          formData.append(`images[${index}]`, file)
+        })
+      }
     }
     
     emit('submit', formData)
@@ -280,8 +355,8 @@ defineExpose({
         >
           <el-icon><Plus /></el-icon>
           <template #file="{ file }">
-            <div>
-              <img class="el-upload-list__item-thumbnail" :src="file.url" alt="" />
+            <div> 
+            <img class="el-upload-list__item-thumbnail" :src="`${file.url}`" alt="" />
               <span class="el-upload-list__item-actions">
                 <span class="el-upload-list__item-preview" @click="handlePreview(file)">
                   <el-icon><zoom-in /></el-icon>

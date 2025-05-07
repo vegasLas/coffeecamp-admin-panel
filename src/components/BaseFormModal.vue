@@ -1,47 +1,36 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, computed } from 'vue'
+import { ElButton, ElDialog } from 'element-plus'
 
-// Responsive dialog width
-const window = ref(globalThis.window)
-const windowWidth = ref(window.value.innerWidth)
-
-const updateWindowWidth = () => {
-  windowWidth.value = window.value.innerWidth
-}
-
-onMounted(() => {
-  window.value.addEventListener('resize', updateWindowWidth)
-})
-
-onUnmounted(() => {
-  window.value.removeEventListener('resize', updateWindowWidth)
-})
-
-interface Props {
-  title: string
+const props = defineProps<{
   visible: boolean
-  width?: string
-  mobileWidth?: string
+  title: string
   loading?: boolean
+  submitDisabled?: boolean
   submitLabel?: string
   cancelLabel?: string
-  submitDisabled?: boolean
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  width: '40%',
-  mobileWidth: '90%',
-  loading: false,
-  submitLabel: 'Сохранить',
-  cancelLabel: 'Отмена',
-  submitDisabled: false
-})
+  width?: string
+  mobileWidth?: string
+}>()
 
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
   (e: 'cancel'): void
   (e: 'submit'): void
 }>()
+
+// Responsive dialog width
+const window = ref(globalThis.window)
+const windowWidth = ref(window.value.innerWidth)
+
+// Update window width on resize
+window.value.addEventListener('resize', () => {
+  windowWidth.value = window.value.innerWidth
+})
+
+const dialogWidth = computed(() => {
+  return windowWidth.value <= 768 ? props.mobileWidth || '90%' : props.width || '50%'
+})
 
 const handleCancel = () => {
   emit('cancel')
@@ -51,45 +40,44 @@ const handleCancel = () => {
 const handleSubmit = () => {
   emit('submit')
 }
-
-const dialogWidth = computed(() => {
-  return windowWidth.value <= 768 ? props.mobileWidth : props.width
-})
 </script>
 
 <template>
-  <el-dialog
+  <ElDialog
     v-model="visible"
     :title="title"
     :width="dialogWidth"
-    center
-    destroy-on-close
-    @close="handleCancel"
-    @update:modelValue="$emit('update:visible', $event)"
+    :close-on-click-modal="false"
+    :close-on-press-escape="false"
+    @close="$emit('update:visible', false)"
   >
+    <!-- Form content -->
     <slot></slot>
     
+    <!-- Dialog footer -->
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleCancel" :disabled="loading">{{ cancelLabel }}</el-button>
-        <el-button 
-          type="primary" 
-          @click="handleSubmit" 
+        <ElButton @click="handleCancel">
+          {{ cancelLabel || 'Отмена' }}
+        </ElButton>
+        <ElButton
+          type="primary"
           :loading="loading"
           :disabled="submitDisabled"
+          @click="handleSubmit"
         >
-          {{ submitLabel }}
-        </el-button>
+          {{ submitLabel || 'Сохранить' }}
+        </ElButton>
       </span>
     </template>
-  </el-dialog>
+  </ElDialog>
 </template>
 
 <style scoped>
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 @media (max-width: 768px) {

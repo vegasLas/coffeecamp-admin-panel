@@ -24,6 +24,9 @@ const modalTitle = computed(() => props.isEdit ? 'Редактировать г�
 const submitLabel = computed(() => props.isEdit ? 'Сохранить' : 'Добавить')
 const isSubmitting = ref(false)
 
+// Store original data for comparison
+const originalData = ref<Partial<ProductGroup>>({})
+
 // Form data
 const form = reactive<Partial<ProductGroup>>({
   title: props.productGroup?.title || '',
@@ -35,12 +38,21 @@ const formValid = computed(() => {
   return form.title && form.title.trim() !== '' && form.priority !== undefined
 })
 
+
+
 const open = () => {
   // Reset form if not in edit mode
   if (!props.isEdit) {
     form.title = ''
     form.priority = 0
+    originalData.value = {}
   } else if (props.productGroup) {
+    // Store original values for comparison
+    originalData.value = {
+      title: props.productGroup.title,
+      priority: props.productGroup.priority
+    }
+    
     // Copy values from the provided product group in edit mode
     form.title = props.productGroup.title
     form.priority = props.productGroup.priority
@@ -58,6 +70,19 @@ const handleCancel = () => {
   close()
 }
 
+// Compare current form data with original data
+const getChangedFields = () => {
+  if (!props.isEdit || !originalData.value) return null
+  
+  const changes: Record<string, any> = {}
+  
+  // Check text and number fields
+  if (form.title !== originalData.value.title) changes.title = form.title
+  if (form.priority !== originalData.value.priority) changes.priority = form.priority
+  
+  return Object.keys(changes).length > 0 ? changes : null
+}
+
 const handleSubmit = async () => {
   if (!formValid.value) {
     ElMessage.warning('Пожалуйста, заполните все обязательные поля')
@@ -67,11 +92,26 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   
   try {
-    emit('submit', {
-      ...form,
-      // Include ID only in edit mode
-      ...(props.isEdit && props.productGroup ? { id: props.productGroup.id } : {})
-    })
+    if (props.isEdit && props.productGroup) {
+      // In edit mode, only send changed fields and ID
+      const changes = getChangedFields()
+      
+      if (changes) {
+        emit('submit', {
+          ...changes,
+          id: props.productGroup.id
+        })
+      } else {
+        // No changes, just close the form
+        ElMessage.info('Нет изменений для сохранения')
+        close()
+        return
+      }
+    } else {
+      // In create mode, send all fields
+      emit('submit', { ...form })
+    }
+    
     close()
   } catch (error) {
     console.error('Form submission error:', error)
