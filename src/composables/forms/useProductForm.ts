@@ -91,6 +91,9 @@ export function useProductForm() {
   
   const close = () => {
     formVisible.value = false
+    // Reset image files and file list when closing the form
+    imageFiles.value = []
+    fileList.value = []
   }
   
   // Compare current form data with original data
@@ -140,26 +143,31 @@ export function useProductForm() {
       
       // If images changed, handle them
       if (imagesChanged) {
-        // Append all new images
-        if (imageFiles.value.length > 0) {
-          imageFiles.value.forEach((file, index) => {
-            formData.append(`images[${index}]`, file)
-          })
-        }
-        
-        // Find existing images that are still in the fileList
-        if (product.value.images) {
-          const existingImageIds = product.value.images
-            .filter((_, index) => {
-              // Check if this existing image is still in fileList
-              return fileList.value.some(file => file.name === `existing-image-${index}`)
+        // When fileList is empty, pass an empty array to indicate all images should be removed
+        if (fileList.value.length === 0) {
+          formData.append('existingImages', "false")
+        } else {
+          // Append all new images
+          if (imageFiles.value.length > 0) {
+            imageFiles.value.forEach((file, index) => {
+              formData.append(`images[${index}]`, file)
             })
-            .map(image => image.id)
+          }
           
-          // Append existing image IDs
-          existingImageIds.forEach((id, index) => {
-            formData.append(`existingImages[${index}]`, id.toString())
-          })
+          // Find existing images that are still in the fileList
+          if (product.value.images) {
+            const existingImageIds = product.value.images
+              .filter((_, index) => {
+                // Check if this existing image is still in fileList
+                return fileList.value.some(file => file.name === `existing-image-${index}`)
+              })
+              .map(image => image.id)
+            
+            // Append existing image IDs
+            existingImageIds.forEach((id, index) => {
+              formData.append(`existingImages[${index}]`, id.toString())
+            })
+          }
         }
       }
     } else {

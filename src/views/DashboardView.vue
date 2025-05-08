@@ -11,7 +11,7 @@ import { Fold, Close, SwitchButton } from '@element-plus/icons-vue'
 const authStore = useAuthStore()
 const router = useRouter()
 
-const activeTab = ref('products')
+const activeTab = ref('productGroups')
 const isMobile = ref(false)
 const sidebarVisible = ref(false)
 
@@ -62,11 +62,11 @@ const handleLogout = () => {
         class="h-full border-0 px-3"
         @select="(index: any) => { activeTab = index; if (isMobile) toggleSidebar(); }"
       >
-        <el-menu-item index="products">
-          <span>Продукты</span>
-        </el-menu-item>
         <el-menu-item index="productGroups">
           <span>Группы продуктов</span>
+        </el-menu-item>
+        <el-menu-item index="products">
+          <span>Продукты</span>
         </el-menu-item>
         <el-menu-item index="reviews">
           <span>Отзывы</span>

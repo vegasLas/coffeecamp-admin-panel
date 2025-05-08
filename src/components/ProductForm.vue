@@ -113,6 +113,7 @@ defineExpose({ open })
       <!-- Product Images -->
       <ProductImageUpload
         v-model:fileList="fileList"
+        :formVisible="formVisible"
         :is-edit="isEdit"
         :required="!isEdit"
         @files-changed="handleFilesChanged"

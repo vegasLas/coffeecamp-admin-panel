@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete, ZoomIn } from '@element-plus/icons-vue'
 import type { UploadProps, UploadUserFile, UploadFile } from 'element-plus'
 
 interface Props {
   fileList: UploadUserFile[]
+  formVisible: boolean
   isEdit?: boolean
   required?: boolean
 }
@@ -21,6 +22,12 @@ const emit = defineEmits<{
 }>()
 
 const imageFiles = ref<File[]>([])
+
+// Watch for fileList changes to reset internal state when needed
+watch(() => props.formVisible, () => {
+  imageFiles.value = []
+})
+
 
 const handleExceed = (files: File[]) => {
   ElMessage.warning(`Максимальное количество изображений: 5. Вы пытаетесь добавить еще ${files.length} изображений.`)
