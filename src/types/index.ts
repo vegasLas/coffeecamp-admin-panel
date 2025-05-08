@@ -37,6 +37,7 @@ export interface Product {
   cost: number
   images: ProductImage[]
   productGroup: ProductGroup
+  visible: boolean
 }
 
 // Review types

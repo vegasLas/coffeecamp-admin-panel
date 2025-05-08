@@ -110,6 +110,11 @@ defineExpose({ open })
         />
       </el-form-item>
 
+      <!-- Product Visibility -->
+      <el-form-item label="Видимость товара">
+        <el-switch v-model="form.visible" />
+      </el-form-item>
+
       <!-- Product Images -->
       <ProductImageUpload
         v-model:fileList="fileList"

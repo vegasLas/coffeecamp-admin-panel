@@ -27,7 +27,8 @@ export function useProductForm() {
     title: '',
     description: '',
     cost: 0,
-    productGroupId: null
+    productGroupId: null,
+    visible: true // Default to true
   })
   
   // Form validation
@@ -56,6 +57,7 @@ export function useProductForm() {
       form.description = ''
       form.cost = 0
       form.productGroupId = null
+      form.visible = true
       imageFiles.value = []
       fileList.value = []
       originalData.value = {} as ProductOriginalData
@@ -67,7 +69,8 @@ export function useProductForm() {
         description: product.value.description || '',
         cost: product.value.cost || 0,
         productGroupId: product.value.productGroup?.id || null,
-        images: product.value.images || []
+        images: product.value.images || [],
+        visible: product.value.visible === undefined ? true : product.value.visible // Default to true if undefined
       }
       
       // Copy values from the provided product in edit mode
@@ -75,6 +78,7 @@ export function useProductForm() {
       form.description = product.value.description || ''
       form.cost = product.value.cost || 0
       form.productGroupId = product.value.productGroup?.id || null
+      form.visible = product.value.visible === undefined ? true : product.value.visible // Default to true if undefined
       
       // Set image previews if available
       if (product.value.images && product.value.images.length > 0) {
@@ -107,6 +111,7 @@ export function useProductForm() {
     if (form.description !== originalData.value.description) changes.description = form.description
     if (form.cost !== originalData.value.cost) changes.cost = form.cost
     if (form.productGroupId !== originalData.value.productGroupId) changes.productGroupId = form.productGroupId
+    if (form.visible !== originalData.value.visible) changes.visible = form.visible
     
     // Check if images have changed
     const hasNewImages = imageFiles.value.length > 0
@@ -176,6 +181,7 @@ export function useProductForm() {
       formData.append('description', form.description)
       formData.append('cost', form.cost.toString())
       formData.append('productGroupId', form.productGroupId!.toString())
+      formData.append('visible', form.visible.toString())
       
       // Append all new images
       if (imageFiles.value.length > 0) {

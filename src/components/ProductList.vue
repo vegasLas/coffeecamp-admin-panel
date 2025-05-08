@@ -126,6 +126,13 @@ const handleDeleteConfirmed = async () => {
           ₽{{ row.cost.toFixed(2) }}
         </template>
       </el-table-column>
+      <el-table-column label="Видимость" width="120">
+        <template #default="{ row }">
+          <el-tag :type="row.visible ? 'success' : 'danger'" size="small">
+            {{ row.visible ? 'Виден' : 'Скрыт' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="Действия" width="200">
         <template #default="{ row }">
           <div class="flex space-x-2">

@@ -6,10 +6,12 @@ export interface ProductFormData {
   description: string
   cost: number
   productGroupId: number | null
+  visible: boolean
 }
 
 export interface ProductOriginalData extends ProductFormData {
   images?: ProductImage[]
+  visible: boolean
 }
 
 export interface ProductFormProps {
