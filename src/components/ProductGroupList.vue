@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useProductGroupsStore } from '../stores/product-groups'
+import { useProductsStore } from '../stores/products'
 import { storeToRefs } from 'pinia'
 import ConfirmationDialog from './ConfirmationDialog.vue'
 import ProductGroupForm from './ProductGroupForm.vue'
@@ -10,6 +11,15 @@ import { Edit, Delete, Plus } from '@element-plus/icons-vue'
 
 const productGroupsStore = useProductGroupsStore()
 const { sortedProductGroups, isLoading, error } = storeToRefs(productGroupsStore)
+
+// Products store for counting products in each group
+const productsStore = useProductsStore()
+const { getProductsByGroup } = storeToRefs(productsStore)
+
+// Fetch products when component is mounted
+onMounted(() => {
+  productsStore.fetchProducts()
+})
 
 // Fetch product groups when component is mounted
 onMounted(() => {
@@ -51,6 +61,32 @@ const handleFormSubmit = async (groupData: Partial<ProductGroup>) => {
 const confirmDialogRef = ref<InstanceType<typeof ConfirmationDialog> | null>(null)
 const groupToDelete = ref<ProductGroup | null>(null)
 
+// Compute the number of products in the group to be deleted
+const productsInGroup = computed(() => {
+  if (!groupToDelete.value) return 0
+  return getProductsByGroup.value.get(groupToDelete.value.id)?.length || 0
+})
+// Warning message for products that will be deleted
+const warningMessage = computed(() => {
+  if (!groupToDelete.value || productsInGroup.value === 0) return ''
+  
+  return `ВНИМАНИЕ: Это действие удалит группу и все ${productsInGroup.value} продуктов, связанных с ней. Это действие нельзя отменить.`
+})
+// Compute the confirmation message with product count
+const confirmationMessage = computed(() => {
+  if (!groupToDelete.value) return ''
+  
+  const baseMessage = `Вы уверены, что хотите удалить \"${groupToDelete.value.title}\"?`
+  
+  if (productsInGroup.value > 0) {
+    return `${baseMessage}\n\n${warningMessage.value}`
+  }
+  
+  return `${baseMessage} Это действие нельзя отменить.`
+})
+
+
+
 const confirmDelete = (group: ProductGroup) => {
   groupToDelete.value = group
   confirmDialogRef.value?.open()
@@ -91,46 +127,94 @@ const handleDeleteConfirmed = async () => {
       :closable="false"
     />
     
-    <el-empty v-else-if="sortedProductGroups.length === 0" description="Группы продуктов не найдены" />
+    <el-empty v-else-if="sortedProductGroups.length === 0" description="Группы не найдены" />
     
-    <el-table v-else :data="sortedProductGroups" stripe style="width: 100%">
-      <el-table-column prop="id" label="ID" width="70" />
-      <el-table-column prop="title" label="Название" />
-      <el-table-column prop="priority" label="Приоритет" width="120" />
-      <el-table-column label="Видимость" width="120">
-        <template #default="{ row }">
-          <el-tag :type="row.visible ? 'success' : 'danger'" size="small">
-            {{ row.visible ? 'Видимый' : 'Скрытый' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="Действия" width="200">
-        <template #default="{ row }">
-          <div class="flex space-x-2">
-            <el-button size="small" type="primary" circle @click="openEditForm(row)">
-              <el-icon><Edit /></el-icon>
-            </el-button>
-            <el-button 
-              size="small" 
-              type="danger" 
-              circle
-              @click="confirmDelete(row)"
-            >
-              <el-icon><Delete /></el-icon>
-            </el-button>
-          </div>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="overflow-x-auto pb-2" v-else>
+      <el-table 
+        :data="sortedProductGroups" 
+        stripe 
+        style="width: 100%"
+        table-layout="auto"
+        size="small"
+        class="responsive-table"
+      >
+        <el-table-column prop="title" label="Название" min-width="120">
+          <template #default="{ row }">
+            <div>
+              <span class="font-medium">{{ row.title }}</span>
+              
+              <!-- Mobile-only product count and visibility -->
+              <div class="text-xs text-gray-500 md:hidden mt-1 flex items-center space-x-2">
+                <el-tag type="info" size="small">
+                  {{ getProductsByGroup.get(row.id)?.length || 0 }} продуктов
+                </el-tag>
+                <el-tag :type="row.visible ? 'success' : 'danger'" size="small">
+                  {{ row.visible ? 'Видна' : 'Скрыта' }}
+                </el-tag>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        
+        <!-- Desktop-only product count column -->
+        <el-table-column label="Кол-во продуктов" width="150" class-name="hidden md:table-cell">
+          <template #default="{ row }">
+            <el-tag type="info" size="small">
+              {{ getProductsByGroup.get(row.id)?.length || 0 }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="priority" label="Приоритет" width="120" class-name="hidden md:table-cell" />
+        
+        <!-- Desktop-only visibility column -->
+        <el-table-column label="Видимость" width="120" class-name="hidden md:table-cell">
+          <template #default="{ row }">
+            <el-tag :type="row.visible ? 'success' : 'danger'" size="small">
+              {{ row.visible ? 'Видна' : 'Скрыта' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        
+        <el-table-column label="Действия" width="120" align="center">
+          <template #default="{ row }">
+            <div class="flex space-x-2 justify-center">
+              <el-button size="small" type="primary" circle @click="openEditForm(row)">
+                <el-icon><Edit /></el-icon>
+              </el-button>
+              <el-button 
+                size="small" 
+                type="danger" 
+                circle
+                @click="confirmDelete(row)"
+              >
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
     
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
       ref="confirmDialogRef"
       title="Удалить группу продуктов"
-      :message="`Вы уверены, что хотите удалить '${groupToDelete?.title || ''}'? Это действие нельзя отменить, и оно может не выполниться, если с этой группой связаны продукты.`"
+      :message="confirmationMessage"
       confirm-button-text="Удалить"
       @confirm="handleDeleteConfirmed"
-    />
+    >
+      <template #extra>
+        <el-alert
+          v-if="productsInGroup > 0"
+          :title="warningMessage"
+          type="error"
+          effect="dark"
+          :closable="false"
+          class="mb-4"
+        />
+      </template>
+    </ConfirmationDialog>
     
     <!-- Product Group Form -->
     <ProductGroupForm
@@ -143,5 +227,10 @@ const handleDeleteConfirmed = async () => {
 <style scoped>
 .product-group-list {
   padding: 1rem;
+}
+
+/* Improve spacing in table cells */
+.responsive-table :deep(.el-table__row td) {
+  padding: 12px 8px;
 }
 </style>
