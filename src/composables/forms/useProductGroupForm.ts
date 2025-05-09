@@ -22,7 +22,8 @@ export function useProductGroupForm() {
   // Form data
   const form = reactive<ProductGroupFormData>({
     title: '',
-    priority: 0
+    priority: 0,
+    visible: true // Default to true
   })
   
   // Form validation
@@ -41,17 +42,20 @@ export function useProductGroupForm() {
     if (!isEdit.value) {
       form.title = ''
       form.priority = 0
+      form.visible = true
       originalData.value = {} as ProductGroupOriginalData
     } else if (productGroup.value) {
       // Store original values for comparison
       originalData.value = {
         title: productGroup.value.title || '',
-        priority: productGroup.value.priority || 0
+        priority: productGroup.value.priority || 0,
+        visible: productGroup.value.visible === undefined ? true : productGroup.value.visible // Default to true if undefined
       }
       
       // Copy values from the provided product group in edit mode
       form.title = productGroup.value.title || ''
       form.priority = productGroup.value.priority || 0
+      form.visible = productGroup.value.visible === undefined ? true : productGroup.value.visible // Default to true if undefined
     }
   }
   
@@ -68,6 +72,7 @@ export function useProductGroupForm() {
     // Check text and number fields
     if (form.title !== originalData.value.title) changes.title = form.title
     if (form.priority !== originalData.value.priority) changes.priority = form.priority
+    if (form.visible !== originalData.value.visible) changes.visible = form.visible
     
     return Object.keys(changes).length > 0 ? changes : null
   }

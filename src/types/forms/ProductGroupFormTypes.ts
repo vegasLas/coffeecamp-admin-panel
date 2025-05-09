@@ -4,6 +4,7 @@ import type { ProductGroup } from '../index'
 export interface ProductGroupFormData {
   title: string
   priority: number
+  visible: boolean
 }
 
 export interface ProductGroupOriginalData extends ProductGroupFormData {}

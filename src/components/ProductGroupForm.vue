@@ -80,6 +80,11 @@ defineExpose({
           Группы с более высоким приоритетом отображаются первыми (0-10)
         </div>
       </el-form-item>
+      
+      <!-- Product Group Visibility -->
+      <el-form-item label="Видимость группы">
+        <el-switch v-model="form.visible" />
+      </el-form-item>
     </el-form>
   </BaseFormModal>
 </template>

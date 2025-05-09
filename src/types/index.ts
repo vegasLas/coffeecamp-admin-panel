@@ -28,6 +28,7 @@ export interface ProductGroup {
   title: string
   priority: number
   products?: Product[]
+  visible: boolean
 }
 
 export interface Product {
