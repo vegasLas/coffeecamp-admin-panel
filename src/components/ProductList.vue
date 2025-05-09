@@ -124,20 +124,31 @@ const handleDeleteConfirmed = async () => {
               </div>
               
                 <!-- Mobile-only price and group -->
-                <div class="text-xs text-gray-500 md:hidden flex flex-col mb-2">
+                <div class="text-xs text-gray-500 md:hidden flex mb-2">
                   <el-tooltip 
-                  v-if="row.description" 
-                  :content="row.description" 
-                  placement="top" 
-                  :effect="'light'" 
-                  :show-after="500"
-                >
-                  <el-tag size="small" type="warning">{{ row.title }}</el-tag>
-                </el-tooltip>
+                    v-if="row.description" 
+                    :content="row.description" 
+                    placement="top" 
+                    :effect="'light'" 
+                    :show-after="500"
+                  >
+                    <el-tag size="small" type="warning">{{ row.title }}</el-tag>
+                  </el-tooltip>
                   <el-tag size="small" type="info">{{ row.productGroup.title }}</el-tag>
                   <el-tag size="small" type="success">₽{{ row.cost.toFixed(2) }}</el-tag>
                 </div>
             </div>
+            <spap class="hidden md:inline">
+              <el-tooltip 
+                v-if="row.description" 
+                :content="row.description" 
+                placement="top" 
+                :effect="'light'" 
+                :show-after="500"
+              >
+                <el-tag size="small" type="warning">{{ row.title }}</el-tag>
+              </el-tooltip>
+            </spap>
           </template>
         </el-table-column>
         
@@ -150,7 +161,9 @@ const handleDeleteConfirmed = async () => {
                   <img :src="`https://coffeecamp.ru${image.path}`" class="w-full h-full object-cover" :alt="row.title" />
                 </el-carousel-item>
               </el-carousel>
-              <el-tag v-else type="info" size="small">Нет фото</el-tag>
+              <div v-else class="w-full h-full flex items-center">
+                <el-tag type="info" size="small">Нет фото</el-tag>
+              </div>
             </div>
           </template>
         </el-table-column>
