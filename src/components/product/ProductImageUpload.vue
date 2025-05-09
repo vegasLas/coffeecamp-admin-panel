@@ -8,12 +8,10 @@ interface Props {
   fileList: UploadUserFile[]
   formVisible: boolean
   isEdit?: boolean
-  required?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isEdit: false,
-  required: false
 })
 
 const emit = defineEmits<{
@@ -87,7 +85,7 @@ const beforeImageUpload: UploadProps['beforeUpload'] = (file) => {
 </script>
 
 <template>
-  <el-form-item :label="props.isEdit ? 'Изменить изображения' : 'Изображения'" :required="props.required">
+  <el-form-item :label="props.isEdit ? 'Изменить изображения' : 'Изображения'">
     <el-upload
       class="mr-4"
       action="#"

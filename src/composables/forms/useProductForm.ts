@@ -37,9 +37,8 @@ export function useProductForm() {
       form.title && 
       form.title.trim() !== '' && 
       form.cost > 0 &&
-      form.productGroupId !== null &&
-      // In edit mode, we don't require a new image
-      (isEdit.value || imageFiles.value.length > 0)
+      form.productGroupId !== null
+      // Images are now optional for both create and edit modes
     )
   })
   

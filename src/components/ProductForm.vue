@@ -120,7 +120,6 @@ defineExpose({ open })
         v-model:fileList="fileList"
         :formVisible="formVisible"
         :is-edit="isEdit"
-        :required="!isEdit"
         @files-changed="handleFilesChanged"
       />
     </el-form>
